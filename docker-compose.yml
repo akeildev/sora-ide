@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  # Piston - Code execution engine
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: replit-lite-piston
+    privileged: true
+    ports:
+      - "2000:2000"
+    environment:
+      - PISTON_LOG_LEVEL=INFO
+    volumes:
+      - piston_packages:/piston/packages
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2000/api/v2/runtimes"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  piston_packages:
+    driver: local

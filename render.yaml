@@ -1,0 +1,86 @@
+services:
+  # API Server
+  - type: web
+    name: soraide-api
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: cd apps/api && pnpm install && pnpm build
+    startCommand: cd apps/api && pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: LIVEBLOCKS_SECRET_KEY
+        sync: false
+      - key: PISTON_URL
+        value: http://piston:2000
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: soraide-redis
+          property: connectionString
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # Preview Server
+  - type: web
+    name: soraide-preview
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: cd apps/preview && pnpm install && pnpm build
+    startCommand: cd apps/preview && pnpm start
+    disk:
+      name: preview-sessions
+      mountPath: /tmp/sessions
+      sizeGB: 10
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: SESSION_DIR
+        value: /tmp/sessions
+      - key: SESSION_TTL_MINUTES
+        value: 60
+    healthCheckPath: /health
+    autoDeploy: true
+
+  # Piston (Private Service - no public access)
+  - type: pserv
+    name: piston
+    runtime: docker
+    region: oregon
+    plan: starter
+    dockerfilePath: ./docker/Dockerfile.piston
+    dockerContext: .
+    envVars:
+      - key: PISTON_LOG_LEVEL
+        value: INFO
+      - key: PISTON_MAX_CONCURRENT_JOBS
+        value: 5
+      - key: PISTON_RUN_TIMEOUT
+        value: 10000
+      - key: PISTON_COMPILE_TIMEOUT
+        value: 15000
+      - key: PISTON_RUN_MEMORY_LIMIT
+        value: 256000000
+      - key: PISTON_COMPILE_MEMORY_LIMIT
+        value: 512000000
+      - key: PISTON_OUTPUT_MAX_SIZE
+        value: 65536
+
+databases:
+  # Redis for rate limiting and caching
+  - name: soraide-redis
+    plan: starter
+    region: oregon
+    ipAllowList: []

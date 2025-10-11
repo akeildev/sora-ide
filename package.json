@@ -1,0 +1,63 @@
+{
+  "name": "soraide-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SoraIDE - Collaborative code editor with multi-file projects and real-time editing",
+  "scripts": {
+    "dev:ide": "pnpm --filter ide dev",
+    "dev:api": "pnpm --filter api dev",
+    "dev:preview": "pnpm --filter preview dev",
+    "dev:types": "pnpm --filter @repo/types dev",
+    "dev:utils": "pnpm --filter @repo/utils dev",
+    "dev:all": "concurrently \"pnpm dev:types\" \"pnpm dev:utils\" \"pnpm dev:api\" \"pnpm dev:preview\" \"pnpm dev:ide\"",
+    "dev:backend": "concurrently \"pnpm dev:api\" \"pnpm dev:preview\"",
+    "build:ide": "pnpm --filter ide build",
+    "build:api": "pnpm --filter api build",
+    "build:preview": "pnpm --filter preview build",
+    "build:types": "pnpm --filter @repo/types build",
+    "build:utils": "pnpm --filter @repo/utils build",
+    "build:packages": "pnpm build:types && pnpm build:utils",
+    "build:apps": "pnpm build:api && pnpm build:preview && pnpm build:ide",
+    "build:all": "pnpm build:packages && pnpm build:apps",
+    "build": "pnpm build:all",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint -- --fix",
+    "clean:ide": "pnpm --filter ide clean",
+    "clean:api": "pnpm --filter api clean",
+    "clean:preview": "pnpm --filter preview clean",
+    "clean:types": "pnpm --filter @repo/types clean",
+    "clean:utils": "pnpm --filter @repo/utils clean",
+    "clean:all": "pnpm -r clean",
+    "clean:deep": "pnpm clean:all && rm -rf node_modules **/node_modules",
+    "docker:piston": "docker-compose up -d piston",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f piston",
+    "firebase:emulators": "firebase emulators:start",
+    "firebase:deploy": "firebase deploy",
+    "install:all": "pnpm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/soraide.git"
+  },
+  "keywords": [
+    "ide",
+    "editor",
+    "collaborative",
+    "real-time",
+    "code-execution",
+    "monaco",
+    "liveblocks",
+    "yjs"
+  ],
+  "author": "Akeil",
+  "license": "MIT"
+}
