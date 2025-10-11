@@ -1,0 +1,24 @@
+# Dockerfile for Piston (code execution engine)
+FROM ghcr.io/engineer-man/piston:latest
+
+# Pre-install common languages to speed up startup
+RUN /piston/cli/index.js ppman install python=3.11 && \
+    /piston/cli/index.js ppman install node=20 && \
+    /piston/cli/index.js ppman install java=17 && \
+    /piston/cli/index.js ppman install go=1.21 && \
+    /piston/cli/index.js ppman install rust=1.75 && \
+    /piston/cli/index.js ppman install typescript=5.3 && \
+    /piston/cli/index.js ppman install c=10.2 && \
+    /piston/cli/index.js ppman install cpp=10.2
+
+# Configure resource limits (production-safe defaults)
+ENV PISTON_MAX_CONCURRENT_JOBS=5
+ENV PISTON_RUN_TIMEOUT=10000
+ENV PISTON_COMPILE_TIMEOUT=15000
+ENV PISTON_RUN_MEMORY_LIMIT=256000000
+ENV PISTON_COMPILE_MEMORY_LIMIT=512000000
+ENV PISTON_OUTPUT_MAX_SIZE=65536
+
+EXPOSE 2000
+
+CMD ["/piston/api/src/index.js"]
