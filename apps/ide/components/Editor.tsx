@@ -34,8 +34,6 @@ export function Editor({ file, onFileChange }: EditorProps) {
 
   // Handle Monaco binding with Yjs (client-side only)
   useEffect(() => {
-    let binding: any;
-
     if (!isEditorReady || !editorRef.current || !yjsText || !yProvider || !file) {
       return;
     }
@@ -51,18 +49,16 @@ export function Editor({ file, onFileChange }: EditorProps) {
     import('y-monaco').then(({ MonacoBinding }) => {
       if (editorRef.current && yjsText && yProvider) {
         // Create Monaco binding with awareness for collaborative cursors
-        binding = new MonacoBinding(
+        bindingRef.current = new MonacoBinding(
           yjsText,
           model,
           new Set([editor]),
           yProvider.awareness as Awareness
         );
-        bindingRef.current = binding;
       }
     });
 
     return () => {
-      binding?.destroy();
       bindingRef.current?.destroy();
       bindingRef.current = null;
     };
