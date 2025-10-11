@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
       yjs: path.resolve(__dirname, 'node_modules/yjs'),
+      'y-protocols': path.resolve(__dirname, 'node_modules/y-protocols'),
+      'lib0': path.resolve(__dirname, 'node_modules/lib0'),
     };
 
     return config;
