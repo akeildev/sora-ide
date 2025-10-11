@@ -44,30 +44,30 @@ type RoomEvent = {
 };
 
 // Create typed hooks for Liveblocks
+const roomContext = createRoomContext<Presence, Storage, UserMeta, RoomEvent>(client);
+
 export const {
-  suspense: {
-    RoomProvider,
-    useRoom,
-    useMyPresence,
-    useOthers,
-    useSelf,
-    useOthersMapped,
-    useOthersConnectionIds,
-    useOther,
-    useBroadcastEvent,
-    useEventListener,
-    useErrorListener,
-    useStorage,
-    useBatch,
-    useHistory,
-    useUndo,
-    useRedo,
-    useCanUndo,
-    useCanRedo,
-    useMutation,
-    useStatus,
-    useLostConnectionListener,
-  },
-} = createRoomContext<Presence, Storage, UserMeta, RoomEvent>(client);
+  RoomProvider,
+  useRoom,
+  useMyPresence,
+  useOthers,
+  useSelf,
+  useOthersMapped,
+  useOthersConnectionIds,
+  useOther,
+  useBroadcastEvent,
+  useEventListener,
+  useErrorListener,
+  useStorage,
+  useBatch,
+  useHistory,
+  useUndo,
+  useRedo,
+  useCanUndo,
+  useCanRedo,
+  useMutation,
+  useStatus,
+  useLostConnectionListener,
+} = roomContext.suspense;
 
 export { client };

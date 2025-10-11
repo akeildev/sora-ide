@@ -10,6 +10,8 @@ import { Editor as MonacoEditor } from '@monaco-editor/react';
 import { ProjectFile } from '@repo/types';
 import { useEffect, useRef, useState } from 'react';
 import { useCollaboration, getOrCreateYjsText } from '@/hooks/useCollaboration';
+import { Cursors } from './Cursors';
+import type { Awareness } from 'y-protocols/awareness';
 
 interface EditorProps {
   file: ProjectFile | null;
@@ -32,6 +34,8 @@ export function Editor({ file, onFileChange }: EditorProps) {
 
   // Handle Monaco binding with Yjs (client-side only)
   useEffect(() => {
+    let binding: any;
+
     if (!isEditorReady || !editorRef.current || !yjsText || !yProvider || !file) {
       return;
     }
@@ -45,33 +49,20 @@ export function Editor({ file, onFileChange }: EditorProps) {
 
     // Dynamically import y-monaco (browser-only)
     import('y-monaco').then(({ MonacoBinding }) => {
-      import('y-protocols/awareness').then(({ Awareness }) => {
-        if (editorRef.current && yjsText && yProvider) {
-          const awareness = yProvider.awareness as Awareness;
-
-          // Set local user info for cursor display
-          const user = yProvider.awareness?.getLocalState()?.user || {
-            name: 'Anonymous',
-            color: '#' + Math.floor(Math.random()*16777215).toString(16),
-          };
-
-          awareness.setLocalStateField('user', {
-            name: user.name,
-            color: user.color,
-          });
-
-          // Create Monaco binding
-          bindingRef.current = new MonacoBinding(
-            yjsText,
-            model,
-            new Set([editor]),
-            awareness
-          );
-        }
-      });
+      if (editorRef.current && yjsText && yProvider) {
+        // Create Monaco binding with awareness for collaborative cursors
+        binding = new MonacoBinding(
+          yjsText,
+          model,
+          new Set([editor]),
+          yProvider.awareness as Awareness
+        );
+        bindingRef.current = binding;
+      }
     });
 
     return () => {
+      binding?.destroy();
       bindingRef.current?.destroy();
       bindingRef.current = null;
     };
@@ -148,6 +139,9 @@ export function Editor({ file, onFileChange }: EditorProps) {
 
   return (
     <div className="h-full relative">
+      {/* Collaborative cursors */}
+      {yProvider && <Cursors yProvider={yProvider} />}
+
       {/* Collaboration status indicator */}
       {isConnected && (
         <div className="absolute top-2 right-2 z-10 flex items-center gap-2 px-3 py-1 bg-green-600 text-white text-xs rounded-full">

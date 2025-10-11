@@ -19,3 +19,44 @@ body {
   background: var(--background);
   font-family: var(--font-jetbrains-mono), monospace;
 }
+
+/* Collaborative cursor styles for y-monaco */
+.yRemoteSelection {
+  background-color: var(--user-color);
+  opacity: 0.3;
+}
+
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: var(--user-color) solid 2px;
+  border-top: var(--user-color) solid 2px;
+  border-bottom: var(--user-color) solid 2px;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.yRemoteSelectionHead::after {
+  position: absolute;
+  content: ' ';
+  border: 3px solid var(--user-color);
+  border-radius: 4px;
+  left: -4px;
+  top: -5px;
+}
+
+.yRemoteSelectionHead::after {
+  content: attr(data-name);
+  position: absolute;
+  color: white;
+  background-color: var(--user-color);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  left: -4px;
+  top: -24px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 10;
+}
