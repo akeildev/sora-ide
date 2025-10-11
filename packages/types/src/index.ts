@@ -7,9 +7,10 @@
 export interface Project {
   id: string;
   name: string;
+  description?: string;
   ownerId: string;
-  public: boolean;
-  files: ProjectFile[];
+  collaborators: string[]; // User IDs who can access this project
+  liveblocksRoom: string; // Liveblocks room ID (format: "project:{projectId}")
   createdAt: number;
   updatedAt: number;
 }
