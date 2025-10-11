@@ -5,9 +5,34 @@
 
 import { createClient } from '@liveblocks/client';
 import { createRoomContext } from '@liveblocks/react';
+import { auth } from './firebase';
 
 const client = createClient({
-  publicApiKey: process.env.NEXT_PUBLIC_LIVEBLOCKS_PUBLIC_KEY!,
+  authEndpoint: async (room) => {
+    // Get the current user's ID token
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('User must be authenticated');
+    }
+
+    const idToken = await user.getIdToken();
+
+    // Call our auth API route
+    const response = await fetch('/api/liveblocks-auth', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ room }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to authenticate with Liveblocks');
+    }
+
+    return await response.json();
+  },
 
   // Throttle updates to reduce bandwidth
   throttle: 100,
