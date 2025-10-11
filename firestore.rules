@@ -33,8 +33,14 @@ service cloud.firestore {
 
     // Projects collection
     match /projects/{projectId} {
-      allow read: if isProjectCollaborator(projectId) ||
-                     resource.data.public == true;
+      // For list operations (queries), check if user is owner or collaborator directly
+      allow list: if isAuthenticated() && (
+        resource.data.ownerId == request.auth.uid ||
+        request.auth.uid in resource.data.collaborators
+      );
+      // For get operations, allow if user is collaborator or if project is public
+      allow get: if isProjectCollaborator(projectId) ||
+                    resource.data.public == true;
       allow create: if isAuthenticated() &&
                        request.resource.data.ownerId == request.auth.uid;
       allow update: if isProjectOwner(projectId);

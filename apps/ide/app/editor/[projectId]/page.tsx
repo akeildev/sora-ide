@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { EditorLayout } from '@/components/EditorLayout';
 import { RoomProvider } from '@/lib/liveblocks';
 import { ClientSideSuspense } from '@liveblocks/react';
@@ -9,7 +9,8 @@ import { getProject } from '@/lib/projects';
 import { useRouter } from 'next/navigation';
 import type { Project } from '@repo/types';
 
-export default function EditorPage({ params }: { params: { projectId: string } }) {
+export default function EditorPage({ params }: { params: Promise<{ projectId: string }> }) {
+  const { projectId } = use(params);
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
@@ -28,7 +29,7 @@ export default function EditorPage({ params }: { params: { projectId: string } }
       }
 
       try {
-        const proj = await getProject(params.projectId);
+        const proj = await getProject(projectId);
 
         if (!proj) {
           setError('Project not found');
@@ -52,7 +53,7 @@ export default function EditorPage({ params }: { params: { projectId: string } }
     }
 
     loadProject();
-  }, [user, authLoading, params.projectId, router]);
+  }, [user, authLoading, projectId, router]);
 
   if (authLoading || loadingProject) {
     return <EditorLoading />;
@@ -98,7 +99,7 @@ export default function EditorPage({ params }: { params: { projectId: string } }
       }}
     >
       <ClientSideSuspense fallback={<EditorLoading />}>
-        <EditorLayout projectId={params.projectId} projectName={project.name} />
+        <EditorLayout projectId={projectId} projectName={project.name} />
       </ClientSideSuspense>
     </RoomProvider>
   );
