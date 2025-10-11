@@ -13,7 +13,7 @@ import { Editor } from './Editor';
 import { PresenceAvatars } from './PresenceAvatars';
 import { useCollaborativeFileSystem } from '../hooks/useCollaborativeFileSystem';
 
-export function EditorLayout() {
+export function EditorLayout({ projectId, projectName }: { projectId?: string; projectName?: string } = {}) {
   const {
     files,
     activeFileId,
@@ -30,7 +30,7 @@ export function EditorLayout() {
       {/* Top Bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-[#252526] border-b border-gray-700">
         <div className="flex items-center gap-3">
-          <h1 className="text-xl font-bold text-white">SoraIDE</h1>
+          <h1 className="text-xl font-bold text-white">{projectName || 'SoraIDE'}</h1>
           <span className="text-xs text-gray-500">Phase 2: Collaboration</span>
         </div>
         <div className="flex items-center gap-4">
