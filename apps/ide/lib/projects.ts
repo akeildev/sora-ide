@@ -95,3 +95,53 @@ export async function getUserByEmail(email: string): Promise<{ uid: string; emai
     return null;
   }
 }
+
+// Chat persistence functions
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: number;
+  operations?: any[];
+}
+
+export interface Chat {
+  id: string;
+  title: string;
+  projectId: string;
+  userId: string;
+  messages: ChatMessage[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export async function saveChat(chat: Chat): Promise<void> {
+  const chatRef = doc(db, 'chats', chat.id);
+  await setDoc(chatRef, chat);
+}
+
+export async function getProjectChats(projectId: string, userId: string): Promise<Chat[]> {
+  const q = query(
+    collection(db, 'chats'),
+    where('projectId', '==', projectId),
+    where('userId', '==', userId)
+  );
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => doc.data() as Chat);
+}
+
+export async function getChat(chatId: string): Promise<Chat | null> {
+  const docSnap = await getDoc(doc(db, 'chats', chatId));
+  return docSnap.exists() ? docSnap.data() as Chat : null;
+}
+
+export async function updateChatMessages(chatId: string, messages: ChatMessage[]): Promise<void> {
+  await updateDoc(doc(db, 'chats', chatId), {
+    messages,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deleteChatById(chatId: string): Promise<void> {
+  await deleteDoc(doc(db, 'chats', chatId));
+}

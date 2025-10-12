@@ -42,6 +42,7 @@ const client = createClient({
 type Presence = {
   cursor: { x: number; y: number } | null;
   activeFileId: string | null;
+  agentEditing: boolean; // Track if this user's AI agent is currently editing code
   user: {
     name: string;
     color: string;

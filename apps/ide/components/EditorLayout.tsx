@@ -17,6 +17,9 @@ import { Console } from './Console';
 import { ChatSidebar } from './ChatSidebar';
 import { ChatPanel } from './ChatPanel';
 import { useCollaborativeFileSystem } from '../hooks/useCollaborativeFileSystem';
+import { useMyPresence, useOthers } from '../lib/liveblocks';
+import { useAuth } from '../hooks/useAuth';
+import { getProjectChats, saveChat, updateChatMessages, type Chat as FirestoreChat, type ChatMessage } from '../lib/projects';
 import { useMemo, useState, useEffect } from 'react';
 
 interface Chat {
@@ -34,6 +37,7 @@ interface Message {
 }
 
 export function EditorLayout({ projectId, projectName }: { projectId?: string; projectName?: string } = {}) {
+  const { user } = useAuth();
   const {
     files,
     activeFileId,
@@ -44,6 +48,10 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
     deleteFile,
     setActiveFile,
   } = useCollaborativeFileSystem();
+
+  // Liveblocks presence for agent locking
+  const [myPresence, updateMyPresence] = useMyPresence();
+  const others = useOthers();
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
@@ -89,29 +97,98 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
     }
   };
 
+  // Load chats from Firestore on mount
+  useEffect(() => {
+    if (!projectId || !user) return;
+
+    async function loadChats() {
+      try {
+        const loadedChats = await getProjectChats(projectId!, user!.uid);
+        setChats(loadedChats.map(c => ({
+          id: c.id,
+          title: c.title,
+          timestamp: c.createdAt,
+        })));
+      } catch (error) {
+        console.error('Failed to load chats:', error);
+      }
+    }
+
+    loadChats();
+  }, [projectId, user]);
+
   // Chat handlers
-  const handleNewChat = () => {
-    const newChat: Chat = {
+  const handleNewChat = async () => {
+    if (!projectId || !user) return;
+
+    const newChat: FirestoreChat = {
       id: crypto.randomUUID(),
       title: 'Untitled',
-      timestamp: Date.now(),
+      projectId,
+      userId: user.uid,
+      messages: [],
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
-    setChats(prev => [newChat, ...prev]);
+
+    await saveChat(newChat);
+    setChats(prev => [{ id: newChat.id, title: newChat.title, timestamp: newChat.createdAt }, ...prev]);
     setActiveChat(newChat.id);
     setMessages([]);
   };
 
-  const handleSelectChat = (chatId: string) => {
+  const handleSelectChat = async (chatId: string) => {
     setActiveChat(chatId);
-    // In a real app, load messages for this chat from storage
-    setMessages([]);
+
+    // Load messages from Firestore
+    try {
+      const chat = await getProjectChats(projectId!, user!.uid);
+      const selectedChat = chat.find(c => c.id === chatId);
+      if (selectedChat) {
+        setMessages(selectedChat.messages.map(m => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+          timestamp: m.timestamp,
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to load chat messages:', error);
+      setMessages([]);
+    }
   };
 
   const handleSendMessage = async (message: string) => {
-    if (!activeChat) return;
+    if (!activeChat || !projectId || !user) return;
+
+    // Check if another agent is currently editing
+    const otherAgentEditing = others.find(other => other.presence.agentEditing);
+    if (otherAgentEditing) {
+      const waitingMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: `⏳ Waiting for ${otherAgentEditing.presence.user.name}'s agent to finish editing code...`,
+        timestamp: Date.now(),
+        error: false,
+      };
+      setMessages(prev => [...prev, waitingMessage]);
+
+      // Poll until agent is done
+      const pollInterval = setInterval(() => {
+        const stillEditing = others.find(other => other.presence.agentEditing);
+        if (!stillEditing) {
+          clearInterval(pollInterval);
+          // Remove waiting message and retry
+          setMessages(prev => prev.filter(m => m.id !== waitingMessage.id));
+          handleSendMessage(message);
+        }
+      }, 1000);
+
+      return;
+    }
 
     // Add user message
-    const userMessage: Message = {
+    const userMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
       content: message,
@@ -120,33 +197,91 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
     setMessages(prev => [...prev, userMessage]);
 
     // Update chat title if this is the first message
-    setChats(prev => prev.map(chat => {
-      if (chat.id === activeChat && chat.title === 'Untitled') {
-        return { ...chat, title: message.slice(0, 50) };
-      }
-      return chat;
-    }));
+    const isFirstMessage = messages.length === 0;
+    if (isFirstMessage) {
+      setChats(prev => prev.map(chat => {
+        if (chat.id === activeChat) {
+          return { ...chat, title: message.slice(0, 50) };
+        }
+        return chat;
+      }));
+    }
 
-    // Mock AI response
+    // Set agent editing lock
+    updateMyPresence({ agentEditing: true });
     setIsAILoading(true);
-    setTimeout(() => {
-      const mockResponses = [
-        "I can help you with that! Let me analyze your code...",
-        "Great question! Here's what I found in your project...",
-        "I'll assist you with this task. Let me break it down...",
-        "Based on your code, here's what I suggest...",
-        "I'm analyzing your request. Give me a moment...",
-      ];
 
-      const assistantMessage: Message = {
+    try {
+      // Call AI API
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          projectId,
+          userId: user.uid,
+          files: files.map(f => ({ id: f.id, name: f.name, language: f.language, content: f.content })),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      const data = await response.json();
+      const aiMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: mockResponses[Math.floor(Math.random() * mockResponses.length)],
+        content: data.message || 'I apologize, I could not process that request.',
         timestamp: Date.now(),
+        operations: data.operations,
       };
-      setMessages(prev => [...prev, assistantMessage]);
+
+      // Execute file operations if any
+      if (data.operations && data.operations.length > 0) {
+        for (const op of data.operations) {
+          if (op.type === 'CREATE_FILE') {
+            createFile(op.name, op.content, op.language);
+          } else if (op.type === 'UPDATE_FILE') {
+            updateFile(op.fileId, op.content);
+          } else if (op.type === 'DELETE_FILE') {
+            deleteFile(op.fileId);
+          }
+        }
+      }
+
+      setMessages(prev => [...prev, aiMessage]);
+
+      // Save chat to Firestore
+      await updateChatMessages(activeChat, [...messages, userMessage, aiMessage]);
+
+      // Update chat title in Firestore if first message
+      if (isFirstMessage) {
+        const chatData = await getProjectChats(projectId, user.uid);
+        const currentChat = chatData.find(c => c.id === activeChat);
+        if (currentChat) {
+          await saveChat({
+            ...currentChat,
+            title: message.slice(0, 50),
+            updatedAt: Date.now(),
+          });
+        }
+      }
+    } catch (error) {
+      console.error('AI chat error:', error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: Date.now(),
+        error: true,
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      // Release agent editing lock
+      updateMyPresence({ agentEditing: false });
       setIsAILoading(false);
-    }, 1500);
+    }
   };
 
   // Add keyboard shortcut for Ctrl/Cmd+S

@@ -92,6 +92,7 @@ export default function EditorPage({ params }: { params: Promise<{ projectId: st
       initialPresence={{
         cursor: null,
         activeFileId: null,
+        agentEditing: false,
         user: {
           name: userName,
           color: userColor,
