@@ -28,8 +28,6 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
     setActiveFile,
   } = useCollaborativeFileSystem();
 
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [isSharing, setIsSharing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
 
@@ -45,41 +43,6 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
       javascript: jsFile?.content || '',
     };
   }, [files]);
-
-  const handleSharePreview = async () => {
-    setIsSharing(true);
-    setShareUrl(null);
-
-    try {
-      const previewUrl = process.env.NEXT_PUBLIC_PREVIEW_URL || 'http://localhost:5000';
-      const response = await fetch(`${previewUrl}/sessions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          html: previewContent.html,
-          css: previewContent.css,
-          javascript: previewContent.javascript,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create preview session');
-      }
-
-      const data = await response.json();
-      setShareUrl(data.url);
-
-      // Copy URL to clipboard
-      await navigator.clipboard.writeText(data.url);
-    } catch (error) {
-      console.error('Failed to share preview:', error);
-      alert('Failed to create shareable preview URL');
-    } finally {
-      setIsSharing(false);
-    }
-  };
 
   const handleSave = async () => {
     if (!activeFile) return;
@@ -172,28 +135,6 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
             </svg>
             Share Project
           </button>
-
-          {/* Share Preview Button */}
-          <button
-            onClick={handleSharePreview}
-            disabled={isSharing || (!previewContent.html && !previewContent.css && !previewContent.javascript)}
-            className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center gap-2"
-            title="Create shareable preview URL (60 min expiry)"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            {isSharing ? 'Sharing...' : 'Share Preview'}
-          </button>
-
-          {shareUrl && (
-            <div className="text-xs text-green-400 flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              URL copied!
-            </div>
-          )}
 
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <span>{files.length} file{files.length !== 1 ? 's' : ''}</span>
