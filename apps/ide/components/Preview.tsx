@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 interface PreviewProps {
   html?: string;
@@ -9,23 +9,13 @@ interface PreviewProps {
 }
 
 export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) {
-  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!iframeRef.current) return;
-
-    const iframe = iframeRef.current;
-    const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-
-    if (!iframeDoc) return;
-
+  // Build the complete HTML document using srcdoc (safer than contentDocument)
+  const fullHTML = useMemo(() => {
     try {
       setError(null);
-
-      // Build the complete HTML document
-      const fullHTML = `
-<!DOCTYPE html>
+      return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -64,16 +54,11 @@ export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) 
     }
   </script>
 </body>
-</html>
-      `.trim();
-
-      // Write to iframe
-      iframeDoc.open();
-      iframeDoc.write(fullHTML);
-      iframeDoc.close();
+</html>`;
     } catch (err) {
       console.error('Preview render error:', err);
       setError(err instanceof Error ? err.message : 'Failed to render preview');
+      return '';
     }
   }, [html, css, javascript]);
 
@@ -100,8 +85,8 @@ export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) 
       {/* Preview iframe */}
       <div className="flex-1 overflow-hidden">
         <iframe
-          ref={iframeRef}
           title="preview"
+          srcDoc={fullHTML}
           sandbox="allow-scripts"
           className="w-full h-full border-0"
           style={{ background: 'white' }}
