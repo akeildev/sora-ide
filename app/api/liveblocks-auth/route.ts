@@ -47,14 +47,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
 
-      const project = projectDoc.data();
-
-      // Check if user has access (owner or collaborator)
-      const hasAccess = project?.ownerId === userId || project?.collaborators?.includes(userId);
-
-      if (!hasAccess) {
-        return NextResponse.json({ error: 'Access denied' }, { status: 403 });
-      }
+      // Allow all authenticated users to access any project room
+      // No access restrictions - users can join any project
     }
 
     // Create a session for the authenticated user
