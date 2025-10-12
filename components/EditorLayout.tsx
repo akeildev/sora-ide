@@ -248,7 +248,19 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
       if (data.operations && data.operations.length > 0) {
         for (const op of data.operations) {
           if (op.type === 'CREATE_FILE') {
-            createFile(op.name, op.content);
+            try {
+              createFile(op.name, op.content);
+            } catch (error: any) {
+              // If file already exists, update it instead
+              if (error.message?.includes('already exists')) {
+                const existingFile = files.find(f => f.name === op.name);
+                if (existingFile) {
+                  updateFile(existingFile.id, op.content);
+                }
+              } else {
+                throw error;
+              }
+            }
           } else if (op.type === 'UPDATE_FILE') {
             updateFile(op.fileId, op.content);
           } else if (op.type === 'DELETE_FILE') {
