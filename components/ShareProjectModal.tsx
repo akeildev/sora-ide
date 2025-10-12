@@ -16,8 +16,10 @@ export function ShareProjectModal({ projectId, projectName, roomCode, onClose }:
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const [roomCodeCopied, setRoomCodeCopied] = useState(false);
+  const [guestLinkCopied, setGuestLinkCopied] = useState(false);
 
   const projectUrl = `${window.location.origin}/editor/${projectId}`;
+  const guestJoinUrl = roomCode ? `${window.location.origin}/guest-join?code=${roomCode}` : '';
 
   const handleCopyLink = async () => {
     try {
@@ -37,6 +39,17 @@ export function ShareProjectModal({ projectId, projectName, roomCode, onClose }:
       setTimeout(() => setRoomCodeCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy room code:', error);
+    }
+  };
+
+  const handleCopyGuestLink = async () => {
+    if (!guestJoinUrl) return;
+    try {
+      await navigator.clipboard.writeText(guestJoinUrl);
+      setGuestLinkCopied(true);
+      setTimeout(() => setGuestLinkCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy guest link:', error);
     }
   };
 
@@ -126,6 +139,36 @@ export function ShareProjectModal({ projectId, projectName, roomCode, onClose }:
               </div>
               <p className="text-xs text-blue-200 mt-2">
                 Share this code for quick access to your project
+              </p>
+            </div>
+          )}
+
+          {/* Guest Join Link Section */}
+          {roomCode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Guest Join Link
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={guestJoinUrl}
+                  readOnly
+                  className="flex-1 px-3 py-2 bg-[#1e1e1e] border border-gray-700 rounded text-gray-300 text-sm"
+                />
+                <button
+                  onClick={handleCopyGuestLink}
+                  className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                    guestLinkCopied
+                      ? 'bg-green-600 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {guestLinkCopied ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Share this link with guests who don&apos;t have an account
               </p>
             </div>
           )}

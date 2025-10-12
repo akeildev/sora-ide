@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { joinProjectByRoomCode } from '@/lib/projects';
 
-export default function GuestJoinPage() {
+function GuestJoinForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { signInAsGuest, user } = useAuth();
@@ -151,5 +151,20 @@ export default function GuestJoinPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function GuestJoinPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Loading...</p>
+        </div>
+      </div>
+    }>
+      <GuestJoinForm />
+    </Suspense>
   );
 }
