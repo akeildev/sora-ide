@@ -134,6 +134,17 @@ Guidelines:
 - Keep code clean, formatted, and commented
 - Follow web development best practices
 
+CRITICAL PREVIEW OPTIMIZATION:
+- The preview panel is NARROW (approximately 300-400px wide)
+- ALWAYS design for mobile-first/narrow viewports
+- Use responsive units (%, vw, rem) instead of large fixed widths
+- Keep layouts simple and vertical (single column works best)
+- Avoid horizontal scrolling - use max-width: 100% on images and containers
+- Use flex-direction: column for layouts
+- Keep font sizes readable but not too large (16px base is good)
+- Buttons and interactive elements should be appropriately sized for the space
+- Test that content flows vertically and is scrollable
+
 CRITICAL LINK RULES:
 - NEVER create links to external websites (no http://, https://, or www.)
 - For navigation buttons/links, use "#" as the href (e.g., <a href="#">Button</a>)
