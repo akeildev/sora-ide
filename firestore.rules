@@ -3,38 +3,42 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     // Users collection - users can read/write their own document
+    // Note: request.auth != null includes both regular and anonymous users
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Projects collection
+    // Anonymous (guest) users are supported - they are authenticated users
     match /projects/{projectId} {
-      // Allow any authenticated user to read projects (needed for room code lookups)
+      // Allow any authenticated user (including guests) to read projects
+      // This is needed for room code lookups
       allow read: if request.auth != null;
 
-      // Allow create if user is authenticated
+      // Allow create if user is authenticated (including guests)
       allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
 
-      // Allow update by any authenticated user (needed for joining via room code)
-      // Users can add themselves as collaborators
+      // Allow update by any authenticated user (including guests)
+      // This is needed for joining via room code - users can add themselves as collaborators
       allow update: if request.auth != null;
 
-      // Allow delete if user is owner
+      // Allow delete if user is owner (including guest owners)
       allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
     }
 
-    // Chats collection - NEW!
+    // Chats collection
+    // Anonymous users can use the chat feature
     match /chats/{chatId} {
-      // Allow read if user owns this chat
+      // Allow read if user owns this chat (including anonymous users)
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
 
-      // Allow create if user is authenticated and setting themselves as owner
+      // Allow create if user is authenticated (including anonymous users)
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
 
-      // Allow update if user owns this chat
+      // Allow update if user owns this chat (including anonymous users)
       allow update: if request.auth != null && resource.data.userId == request.auth.uid;
 
-      // Allow delete if user owns this chat
+      // Allow delete if user owns this chat (including anonymous users)
       allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }

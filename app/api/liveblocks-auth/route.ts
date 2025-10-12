@@ -26,8 +26,27 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = decodedToken.uid;
-    const userEmail = decodedToken.email || 'Anonymous';
-    const userName = decodedToken.name || userEmail;
+    // For anonymous users, use their display name from Firebase profile
+    // For regular users, use email and name from token
+    const isAnonymous = decodedToken.firebase?.sign_in_provider === 'anonymous';
+
+    let userEmail = 'Guest';
+    let userName = 'Guest User';
+
+    if (!isAnonymous) {
+      userEmail = decodedToken.email || 'Anonymous';
+      userName = decodedToken.name || userEmail;
+    } else {
+      // For anonymous users, we'll fetch their display name from the user profile
+      // The display name is set in the signInAsGuest function
+      try {
+        const userRecord = await adminAuth.getUser(userId);
+        userName = userRecord.displayName || 'Guest User';
+        userEmail = userName; // Use display name as email for anonymous users
+      } catch (error) {
+        console.error('Failed to fetch anonymous user profile:', error);
+      }
+    }
 
     // Get the room ID from the request body
     const { room } = await request.json();

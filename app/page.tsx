@@ -28,12 +28,25 @@ export default function Home() {
               </Link>
             </>
           ) : (
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-lg transition-colors"
-            >
-              Sign In to Start
-            </button>
+            <>
+              <button
+                onClick={() => setShowAuthModal(true)}
+                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white text-lg font-semibold rounded-lg transition-colors"
+              >
+                Sign In to Start
+              </button>
+              <div className="flex items-center gap-4">
+                <div className="h-px bg-gray-700 w-12" />
+                <span className="text-gray-500 text-sm">or</span>
+                <div className="h-px bg-gray-700 w-12" />
+              </div>
+              <Link
+                href="/guest-join"
+                className="px-8 py-3 border-2 border-gray-600 hover:border-gray-500 text-gray-300 hover:text-white text-lg font-semibold rounded-lg transition-colors"
+              >
+                Join as Guest
+              </Link>
+            </>
           )}
         </div>
         <div className="mt-12 text-sm text-gray-600 space-y-2">

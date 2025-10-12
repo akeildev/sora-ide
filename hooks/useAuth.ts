@@ -8,6 +8,8 @@ import {
   GoogleAuthProvider,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  signInAnonymously,
+  updateProfile,
   signOut as firebaseSignOut
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
@@ -48,9 +50,23 @@ export function useAuth() {
     await createUserWithEmailAndPassword(auth, email, password);
   };
 
+  const signInAsGuest = async (displayName: string) => {
+    // Sign in anonymously
+    const userCredential = await signInAnonymously(auth);
+
+    // Set the display name for the anonymous user
+    if (userCredential.user) {
+      await updateProfile(userCredential.user, {
+        displayName: displayName
+      });
+    }
+
+    return userCredential.user;
+  };
+
   const signOut = async () => {
     await firebaseSignOut(auth);
   };
 
-  return { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signOut };
+  return { user, loading, signInWithGoogle, signInWithEmail, signUpWithEmail, signInAsGuest, signOut };
 }
