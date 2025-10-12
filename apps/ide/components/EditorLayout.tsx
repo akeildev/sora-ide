@@ -11,7 +11,9 @@ import { FileTree } from './FileTree';
 import { TabBar } from './TabBar';
 import { Editor } from './Editor';
 import { PresenceAvatars } from './PresenceAvatars';
+import { Preview } from './Preview';
 import { useCollaborativeFileSystem } from '../hooks/useCollaborativeFileSystem';
+import { useMemo } from 'react';
 
 export function EditorLayout({ projectId, projectName }: { projectId?: string; projectName?: string } = {}) {
   const {
@@ -24,6 +26,19 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
     deleteFile,
     setActiveFile,
   } = useCollaborativeFileSystem();
+
+  // Extract HTML, CSS, and JavaScript files for preview
+  const previewContent = useMemo(() => {
+    const htmlFile = files.find(f => f.language === 'html');
+    const cssFile = files.find(f => f.language === 'css');
+    const jsFile = files.find(f => f.language === 'javascript');
+
+    return {
+      html: htmlFile?.content || '',
+      css: cssFile?.content || '',
+      javascript: jsFile?.content || '',
+    };
+  }, [files]);
 
   return (
     <div className="h-screen flex flex-col bg-[#1e1e1e]">
@@ -74,27 +89,13 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
 
         <PanelResizeHandle className="w-1 bg-gray-700 hover:bg-blue-500 transition-colors" />
 
-        {/* Output Panel (Placeholder for Phase 4) */}
+        {/* Preview Panel */}
         <Panel defaultSize={20} minSize={15} maxSize={40}>
-          <div className="h-full bg-[#1e1e1e] border-l border-gray-700 flex flex-col">
-            <div className="p-3 border-b border-gray-700">
-              <span className="text-sm font-semibold text-gray-400 uppercase">Output</span>
-            </div>
-            <div className="flex-1 flex items-center justify-center text-gray-600">
-              <div className="text-center">
-                <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                <p className="text-sm">Output panel</p>
-                <p className="text-xs text-gray-700 mt-1">Coming in Phase 4</p>
-              </div>
-            </div>
-          </div>
+          <Preview
+            html={previewContent.html}
+            css={previewContent.css}
+            javascript={previewContent.javascript}
+          />
         </Panel>
       </PanelGroup>
 
