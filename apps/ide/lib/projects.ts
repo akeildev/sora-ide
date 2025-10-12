@@ -73,3 +73,25 @@ export async function removeCollaborator(projectId: string, userId: string): Pro
     updatedAt: Date.now(),
   });
 }
+
+export async function getUserByEmail(email: string): Promise<{ uid: string; email: string } | null> {
+  try {
+    // Query users collection by email
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, where('email', '==', email.toLowerCase()));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      return null;
+    }
+
+    const userData = snapshot.docs[0].data();
+    return {
+      uid: snapshot.docs[0].id,
+      email: userData.email,
+    };
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    return null;
+  }
+}

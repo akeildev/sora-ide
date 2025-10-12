@@ -12,6 +12,7 @@ import { TabBar } from './TabBar';
 import { Editor } from './Editor';
 import { PresenceAvatars } from './PresenceAvatars';
 import { Preview } from './Preview';
+import { ShareProjectModal } from './ShareProjectModal';
 import { useCollaborativeFileSystem } from '../hooks/useCollaborativeFileSystem';
 import { useMemo, useState, useEffect } from 'react';
 
@@ -30,6 +31,7 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Extract HTML, CSS, and JavaScript files for preview
   const previewContent = useMemo(() => {
@@ -158,6 +160,19 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
             )}
           </button>
 
+          {/* Share Project Button */}
+          <button
+            onClick={() => setShowShareModal(true)}
+            disabled={!projectId}
+            className="px-3 py-1.5 text-sm bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded transition-colors flex items-center gap-2"
+            title="Share project with collaborators"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Share Project
+          </button>
+
           {/* Share Preview Button */}
           <button
             onClick={handleSharePreview}
@@ -247,6 +262,15 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
           <span>Ln 1, Col 1</span>
         </div>
       </div>
+
+      {/* Share Project Modal */}
+      {showShareModal && projectId && projectName && (
+        <ShareProjectModal
+          projectId={projectId}
+          projectName={projectName}
+          onClose={() => setShowShareModal(false)}
+        />
+      )}
     </div>
   );
 }
