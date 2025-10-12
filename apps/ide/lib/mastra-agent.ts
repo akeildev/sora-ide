@@ -3,94 +3,140 @@ import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { openai } from '@ai-sdk/openai';
 
+// Type for file data
+interface FileData {
+  id: string;
+  name: string;
+  language: string;
+  content: string;
+}
+
 // File editing tools for the agent
-export const createFileTool = createTool({
-  id: 'create_file',
-  description: 'Create a new HTML, CSS, or JavaScript file in the project',
-  inputSchema: z.object({
-    name: z.string().describe('File name (e.g., "styles.css", "script.js", "index.html")'),
-    content: z.string().describe('File content'),
-    language: z.enum(['html', 'css', 'javascript']).describe('File type'),
-  }),
-  outputSchema: z.object({
-    success: z.boolean(),
-    fileId: z.string().optional(),
-    error: z.string().optional(),
-  }),
-  execute: async ({ context, input }) => {
-    // This will be handled by the API route which has access to Yjs
-    return {
-      success: true,
-      fileId: `pending-${Date.now()}`,
-    };
-  },
-});
-
-export const updateFileTool = createTool({
-  id: 'update_file',
-  description: 'Update the content of an existing file',
-  inputSchema: z.object({
-    fileId: z.string().describe('ID of the file to update'),
-    content: z.string().describe('New file content'),
-  }),
-  outputSchema: z.object({
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
-  execute: async ({ context, input }) => {
-    return { success: true };
-  },
-});
-
-export const deleteFileTool = createTool({
-  id: 'delete_file',
-  description: 'Delete a file from the project',
-  inputSchema: z.object({
-    fileId: z.string().describe('ID of the file to delete'),
-  }),
-  outputSchema: z.object({
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
-  execute: async ({ context, input }) => {
-    return { success: true };
-  },
-});
-
 export const listFilesTool = createTool({
   id: 'list_files',
-  description: 'List all files in the project with their names, IDs, and languages',
+  description: 'List all files currently in the project. Use this FIRST to see what files exist before making any changes.',
   inputSchema: z.object({}),
   outputSchema: z.object({
     files: z.array(z.object({
       id: z.string(),
       name: z.string(),
       language: z.string(),
-      content: z.string(),
+      contentPreview: z.string(),
     })),
   }),
   execute: async ({ context }) => {
-    // Will be provided via context from API route
-    return { files: [] };
+    const files = (context.files || []) as FileData[];
+    return {
+      files: files.map(f => ({
+        id: f.id,
+        name: f.name,
+        language: f.language,
+        contentPreview: f.content.substring(0, 100) + (f.content.length > 100 ? '...' : ''),
+      })),
+    };
   },
 });
 
 export const readFileTool = createTool({
   id: 'read_file',
-  description: 'Read the content of a specific file',
+  description: 'Read the full content of a specific file by its ID. Use this to see the complete file before updating it.',
   inputSchema: z.object({
     fileId: z.string().describe('ID of the file to read'),
   }),
   outputSchema: z.object({
-    content: z.string(),
+    id: z.string(),
     name: z.string(),
     language: z.string(),
+    content: z.string(),
   }),
   execute: async ({ context, input }) => {
+    const files = (context.files || []) as FileData[];
+    const file = files.find(f => f.id === input.fileId);
+
+    if (!file) {
+      throw new Error(`File with ID ${input.fileId} not found`);
+    }
+
     return {
-      content: '',
-      name: '',
-      language: 'html',
+      id: file.id,
+      name: file.name,
+      language: file.language,
+      content: file.content,
+    };
+  },
+});
+
+export const createFileTool = createTool({
+  id: 'create_file',
+  description: 'Create a new HTML, CSS, or JavaScript file. Only use if the file does not already exist (check with list_files first).',
+  inputSchema: z.object({
+    name: z.string().describe('File name (e.g., "styles.css", "script.js", "index.html")'),
+    content: z.string().describe('Complete file content'),
+    language: z.enum(['html', 'css', 'javascript']).describe('File type'),
+  }),
+  outputSchema: z.object({
+    operation: z.object({
+      type: z.literal('CREATE_FILE'),
+      name: z.string(),
+      language: z.string(),
+      content: z.string(),
+    }),
+  }),
+  execute: async ({ input }) => {
+    return {
+      operation: {
+        type: 'CREATE_FILE' as const,
+        name: input.name,
+        language: input.language,
+        content: input.content,
+      },
+    };
+  },
+});
+
+export const updateFileTool = createTool({
+  id: 'update_file',
+  description: 'Update an existing file with new content. Provide the COMPLETE new file content (not partial changes). Use read_file first to get current content.',
+  inputSchema: z.object({
+    fileId: z.string().describe('ID of the file to update'),
+    content: z.string().describe('Complete new file content'),
+  }),
+  outputSchema: z.object({
+    operation: z.object({
+      type: z.literal('UPDATE_FILE'),
+      fileId: z.string(),
+      content: z.string(),
+    }),
+  }),
+  execute: async ({ input }) => {
+    return {
+      operation: {
+        type: 'UPDATE_FILE' as const,
+        fileId: input.fileId,
+        content: input.content,
+      },
+    };
+  },
+});
+
+export const deleteFileTool = createTool({
+  id: 'delete_file',
+  description: 'Delete a file from the project. Only use when explicitly requested by the user.',
+  inputSchema: z.object({
+    fileId: z.string().describe('ID of the file to delete'),
+  }),
+  outputSchema: z.object({
+    operation: z.object({
+      type: z.literal('DELETE_FILE'),
+      fileId: z.string(),
+    }),
+  }),
+  execute: async ({ input }) => {
+    return {
+      operation: {
+        type: 'DELETE_FILE' as const,
+        fileId: input.fileId,
+      },
     };
   },
 });
@@ -103,31 +149,38 @@ export const mastra = new Mastra({
       instructions: `You are a helpful coding assistant for SoraIDE, a collaborative web IDE.
 
 Your role:
-- Help users with HTML, CSS, and JavaScript code
-- Create, update, and delete files as needed
-- Provide explanations and suggestions
-- Fix bugs and improve code quality
+- Help users create, edit, and improve HTML, CSS, and JavaScript code
+- Analyze existing files and make smart updates
+- Provide clear explanations of what you're doing
 
-Important guidelines:
+IMPORTANT WORKFLOW:
+1. ALWAYS call list_files FIRST to see what files exist
+2. If updating existing files, call read_file to see their current content
+3. Only create new files if they don't exist yet
+4. When updating, provide the COMPLETE new file content (not just changes)
+5. Explain what you're doing in your response
+
+Guidelines:
 - ONLY work with HTML, CSS, and JavaScript files
-- Always use the provided tools to edit files
-- Keep code clean and well-formatted
-- Add helpful comments
+- HTML files must have proper structure: <!DOCTYPE html>, <html>, <head>, <body>
+- CSS files should be well-organized with clear selectors
+- JavaScript should use modern ES6+ syntax
+- Keep code clean, formatted, and commented
 - Follow web development best practices
 
-When creating files:
-- HTML files should have proper structure with <!DOCTYPE html>, <html>, <head>, and <body>
-- CSS files should be well-organized with clear selectors
-- JavaScript files should use modern ES6+ syntax
-
-Always confirm what you're doing before making changes.`,
+Example workflow:
+User: "Make the background red"
+1. Call list_files to see what files exist
+2. If styles.css exists, call read_file to see current CSS
+3. Call update_file with modified CSS including red background
+4. Respond explaining what you changed`,
       model: openai('gpt-4o'),
       tools: {
+        listFiles: listFilesTool,
+        readFile: readFileTool,
         createFile: createFileTool,
         updateFile: updateFileTool,
         deleteFile: deleteFileTool,
-        listFiles: listFilesTool,
-        readFile: readFileTool,
       },
     },
   },
