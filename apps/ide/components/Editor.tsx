@@ -23,6 +23,7 @@ export function Editor({ file, onFileChange }: EditorProps) {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const bindingRef = useRef<any>(null);
   const [isEditorReady, setIsEditorReady] = useState(false);
+  const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   // Get Yjs collaboration hooks
   const { yDoc, yProvider, isConnected } = useCollaboration();
@@ -92,6 +93,8 @@ export function Editor({ file, onFileChange }: EditorProps) {
 
     // If not using Yjs, use local state
     if (!isConnected) {
+      setAutoSaveStatus('saving');
+
       // Clear previous timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
@@ -100,7 +103,15 @@ export function Editor({ file, onFileChange }: EditorProps) {
       // Debounce save for 500ms
       timeoutRef.current = setTimeout(() => {
         onFileChange(file.id, value);
+        setAutoSaveStatus('saved');
+
+        // Reset to idle after 2 seconds
+        setTimeout(() => setAutoSaveStatus('idle'), 2000);
       }, 500);
+    } else {
+      // When connected, Yjs auto-syncs - show brief confirmation
+      setAutoSaveStatus('saved');
+      setTimeout(() => setAutoSaveStatus('idle'), 1500);
     }
   };
 
@@ -138,13 +149,41 @@ export function Editor({ file, onFileChange }: EditorProps) {
       {/* Collaborative cursors */}
       {yProvider && <Cursors yProvider={yProvider} />}
 
-      {/* Collaboration status indicator */}
-      {isConnected && (
-        <div className="absolute top-2 right-2 z-10 flex items-center gap-2 px-3 py-1 bg-green-600 text-white text-xs rounded-full">
-          <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
-          <span>Live</span>
-        </div>
-      )}
+      {/* Status indicators */}
+      <div className="absolute top-2 right-2 z-10 flex items-center gap-2">
+        {/* Collaboration status */}
+        {isConnected && (
+          <div className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white text-xs rounded-full">
+            <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+            <span>Live</span>
+          </div>
+        )}
+
+        {/* Autosave status */}
+        {autoSaveStatus !== 'idle' && (
+          <div className={`flex items-center gap-2 px-3 py-1 text-xs rounded-full transition-all ${
+            autoSaveStatus === 'saved'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-700 text-gray-300'
+          }`}>
+            {autoSaveStatus === 'saving' ? (
+              <>
+                <svg className="w-3 h-3 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                <span>Saved</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
       <MonacoEditor
         height="100%"
