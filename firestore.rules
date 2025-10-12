@@ -2,56 +2,45 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isOwner(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-
-    function isProjectOwner(projectId) {
-      return isAuthenticated() &&
-             get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid;
-    }
-
-    function isProjectCollaborator(projectId) {
-      let project = get(/databases/$(database)/documents/projects/$(projectId)).data;
-      return isAuthenticated() &&
-             (project.ownerId == request.auth.uid ||
-              request.auth.uid in project.collaborators);
-    }
-
-    // Users collection
+    // Users collection - users can read/write their own document
     match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow create: if isOwner(userId);
-      allow update, delete: if isOwner(userId);
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Projects collection
     match /projects/{projectId} {
-      // For list operations (queries), check if user is owner or collaborator directly
-      allow list: if isAuthenticated() && (
+      // Allow read if user is owner or collaborator
+      allow read: if request.auth != null && (
         resource.data.ownerId == request.auth.uid ||
         request.auth.uid in resource.data.collaborators
       );
-      // For get operations, allow if user is collaborator or if project is public
-      allow get: if isProjectCollaborator(projectId) ||
-                    resource.data.public == true;
-      allow create: if isAuthenticated() &&
-                       request.resource.data.ownerId == request.auth.uid;
-      allow update: if isProjectOwner(projectId);
-      allow delete: if isProjectOwner(projectId);
+
+      // Allow create if user is authenticated
+      allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
+
+      // Allow update if user is owner or collaborator
+      allow update: if request.auth != null && (
+        resource.data.ownerId == request.auth.uid ||
+        request.auth.uid in resource.data.collaborators
+      );
+
+      // Allow delete if user is owner
+      allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
     }
 
-    // Run audit logs
-    match /run_audit_logs/{logId} {
-      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
-      allow create: if isAuthenticated();
-      allow update, delete: if false; // Logs are immutable
+    // Chats collection - NEW!
+    match /chats/{chatId} {
+      // Allow read if user owns this chat
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Allow create if user is authenticated and setting themselves as owner
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+      // Allow update if user owns this chat
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid;
+
+      // Allow delete if user owns this chat
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
 }
