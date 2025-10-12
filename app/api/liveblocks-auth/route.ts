@@ -44,11 +44,13 @@ export async function POST(request: NextRequest) {
       const projectDoc = await adminDb.collection('projects').doc(projectId).get();
 
       if (!projectDoc.exists) {
+        console.log(`Project not found: ${projectId}`);
         return NextResponse.json({ error: 'Project not found' }, { status: 404 });
       }
 
       // Allow all authenticated users to access any project room
       // No access restrictions - users can join any project
+      console.log(`User ${userId} authorized for project room: ${projectId}`);
     }
 
     // Create a session for the authenticated user

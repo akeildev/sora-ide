@@ -9,20 +9,15 @@ service cloud.firestore {
 
     // Projects collection
     match /projects/{projectId} {
-      // Allow read if user is owner or collaborator
-      allow read: if request.auth != null && (
-        resource.data.ownerId == request.auth.uid ||
-        request.auth.uid in resource.data.collaborators
-      );
+      // Allow any authenticated user to read projects (needed for room code lookups)
+      allow read: if request.auth != null;
 
       // Allow create if user is authenticated
       allow create: if request.auth != null && request.resource.data.ownerId == request.auth.uid;
 
-      // Allow update if user is owner or collaborator
-      allow update: if request.auth != null && (
-        resource.data.ownerId == request.auth.uid ||
-        request.auth.uid in resource.data.collaborators
-      );
+      // Allow update by any authenticated user (needed for joining via room code)
+      // Users can add themselves as collaborators
+      allow update: if request.auth != null;
 
       // Allow delete if user is owner
       allow delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
