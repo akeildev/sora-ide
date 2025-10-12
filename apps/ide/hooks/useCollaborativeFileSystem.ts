@@ -33,6 +33,8 @@ export function useCollaborativeFileSystem() {
   useEffect(() => {
     if (!filesMetadata || !yDoc || !yProvider) return;
 
+    const textObservers = new Map<string, () => void>();
+
     // Initial sync - convert Y.Map to array
     const syncFromYjs = () => {
       const files: ProjectFile[] = [];
@@ -45,6 +47,16 @@ export function useCollaborativeFileSystem() {
           content: yText ? yText.toString() : '',
           language: metadata.language,
         });
+
+        // Add observer to Y.Text for content changes (if not already added)
+        if (yText && !textObservers.has(fileId)) {
+          const contentObserver = () => {
+            // Re-sync when content changes
+            syncFromYjs();
+          };
+          yText.observe(contentObserver);
+          textObservers.set(fileId, contentObserver);
+        }
       });
 
       // Sort by name for consistent ordering
@@ -63,7 +75,7 @@ export function useCollaborativeFileSystem() {
     // Initial load
     syncFromYjs();
 
-    // Listen for changes
+    // Listen for metadata changes (file create/rename/delete)
     const observer = () => {
       syncFromYjs();
     };
@@ -98,6 +110,15 @@ export function useCollaborativeFileSystem() {
     return () => {
       filesMetadata.unobserve(observer);
       yProvider.off('synced', syncHandler);
+
+      // Cleanup text observers
+      textObservers.forEach((observerFn, fileId) => {
+        const yText = getOrCreateYjsText(yDoc, fileId);
+        if (yText) {
+          yText.unobserve(observerFn);
+        }
+      });
+      textObservers.clear();
     };
   }, [filesMetadata, yDoc, yProvider, hasInitialized]);
 
