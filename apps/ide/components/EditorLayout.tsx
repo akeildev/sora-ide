@@ -13,7 +13,7 @@ import { Editor } from './Editor';
 import { PresenceAvatars } from './PresenceAvatars';
 import { Preview } from './Preview';
 import { useCollaborativeFileSystem } from '../hooks/useCollaborativeFileSystem';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 export function EditorLayout({ projectId, projectName }: { projectId?: string; projectName?: string } = {}) {
   const {
@@ -35,6 +35,7 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
     stderr: string;
     exitCode: number;
   } | null>(null);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   // Extract HTML, CSS, and JavaScript files for preview
   const previewContent = useMemo(() => {
@@ -83,6 +84,39 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
       setIsSharing(false);
     }
   };
+
+  const handleSave = async () => {
+    if (!activeFile) return;
+
+    setSaveStatus('saving');
+
+    try {
+      // Force update the file (this triggers Yjs sync)
+      updateFile(activeFile.id, activeFile.content);
+
+      // Show saved status
+      setSaveStatus('saved');
+
+      // Reset to idle after 2 seconds
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    } catch (error) {
+      console.error('Failed to save:', error);
+      setSaveStatus('idle');
+    }
+  };
+
+  // Add keyboard shortcut for Ctrl/Cmd+S
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSave();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeFile]); // Re-attach when active file changes
 
   const handleRunCode = async () => {
     if (!activeFile) {
@@ -164,6 +198,41 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
         </div>
         <div className="flex items-center gap-4">
           <PresenceAvatars />
+
+          {/* Save Button */}
+          <button
+            onClick={handleSave}
+            disabled={!activeFile || saveStatus === 'saving'}
+            className={`px-3 py-1.5 text-sm rounded transition-colors flex items-center gap-2 ${
+              saveStatus === 'saved'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-700 hover:bg-gray-600 text-white disabled:bg-gray-800 disabled:cursor-not-allowed'
+            }`}
+            title="Save current file (Ctrl/Cmd+S)"
+          >
+            {saveStatus === 'saving' ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Saving...
+              </>
+            ) : saveStatus === 'saved' ? (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Saved!
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                </svg>
+                Save
+              </>
+            )}
+          </button>
 
           {/* Run Code Button */}
           <button
