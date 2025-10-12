@@ -19,7 +19,7 @@ import { ChatPanel } from './ChatPanel';
 import { useCollaborativeFileSystem } from '../hooks/useCollaborativeFileSystem';
 import { useMyPresence, useOthers } from '../lib/liveblocks';
 import { useAuth } from '../hooks/useAuth';
-import { getProjectChats, saveChat, updateChatMessages, type Chat as FirestoreChat, type ChatMessage } from '../lib/projects';
+import { getProjectChats, saveChat, updateChatMessages, getProject, type Chat as FirestoreChat, type ChatMessage } from '../lib/projects';
 import { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 
@@ -64,6 +64,7 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
   const [activeChat, setActiveChat] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAILoading, setIsAILoading] = useState(false);
+  const [roomCode, setRoomCode] = useState<string | undefined>();
 
   const handleSave = async () => {
     if (!activeFile) return;
@@ -84,6 +85,24 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
       setSaveStatus('idle');
     }
   };
+
+  // Load project data to get room code
+  useEffect(() => {
+    if (!projectId) return;
+
+    async function loadProjectData() {
+      try {
+        const project = await getProject(projectId);
+        if (project) {
+          setRoomCode(project.roomCode);
+        }
+      } catch (error) {
+        console.error('Failed to load project data:', error);
+      }
+    }
+
+    loadProjectData();
+  }, [projectId]);
 
   // Load chats from Firestore on mount
   useEffect(() => {
@@ -492,6 +511,7 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
         <ShareProjectModal
           projectId={projectId}
           projectName={projectName}
+          roomCode={roomCode}
           onClose={() => setShowShareModal(false)}
         />
       )}

@@ -6,14 +6,16 @@ import { addCollaborator, getUserByEmail } from '@/lib/projects';
 interface ShareProjectModalProps {
   projectId: string;
   projectName: string;
+  roomCode?: string;
   onClose: () => void;
 }
 
-export function ShareProjectModal({ projectId, projectName, onClose }: ShareProjectModalProps) {
+export function ShareProjectModal({ projectId, projectName, roomCode, onClose }: ShareProjectModalProps) {
   const [email, setEmail] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copied, setCopied] = useState(false);
+  const [roomCodeCopied, setRoomCodeCopied] = useState(false);
 
   const projectUrl = `${window.location.origin}/editor/${projectId}`;
 
@@ -24,6 +26,17 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Failed to copy:', error);
+    }
+  };
+
+  const handleCopyRoomCode = async () => {
+    if (!roomCode) return;
+    try {
+      await navigator.clipboard.writeText(roomCode);
+      setRoomCodeCopied(true);
+      setTimeout(() => setRoomCodeCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy room code:', error);
     }
   };
 
@@ -88,6 +101,35 @@ export function ShareProjectModal({ projectId, projectName, onClose }: ShareProj
 
         {/* Content */}
         <div className="p-4 space-y-4">
+          {/* Room Code Section */}
+          {roomCode && (
+            <div className="bg-blue-900 bg-opacity-30 border border-blue-700 rounded p-4">
+              <label className="block text-sm font-medium text-blue-200 mb-2">
+                Room Code
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-1 px-4 py-3 bg-[#1e1e1e] border border-blue-500 rounded text-center">
+                  <span className="text-2xl font-bold tracking-widest text-white">
+                    {roomCode}
+                  </span>
+                </div>
+                <button
+                  onClick={handleCopyRoomCode}
+                  className={`px-4 py-2 rounded text-sm font-medium transition-colors ${
+                    roomCodeCopied
+                      ? 'bg-green-600 text-white'
+                      : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  }`}
+                >
+                  {roomCodeCopied ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
+              <p className="text-xs text-blue-200 mt-2">
+                Share this code for quick access to your project
+              </p>
+            </div>
+          )}
+
           {/* Copy Link Section */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">

@@ -11,6 +11,7 @@ export interface Project {
   ownerId: string;
   collaborators: string[]; // User IDs who can access this project
   liveblocksRoom: string; // Liveblocks room ID (format: "project:{projectId}")
+  roomCode?: string; // 5-letter code for easy project sharing
   createdAt: number;
   updatedAt: number;
 }

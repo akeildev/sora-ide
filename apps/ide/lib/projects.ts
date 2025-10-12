@@ -4,6 +4,16 @@ import type { Project } from '@repo/types';
 
 const PROJECTS_COLLECTION = 'projects';
 
+// Generate a random 5-letter room code
+function generateRoomCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Excluding confusing characters
+  let code = '';
+  for (let i = 0; i < 5; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+}
+
 export async function createProject(data: {
   name: string;
   description?: string;
@@ -11,6 +21,7 @@ export async function createProject(data: {
 }): Promise<Project> {
   const projectId = crypto.randomUUID();
   const liveblocksRoom = `project:${projectId}`;
+  const roomCode = generateRoomCode();
 
   const project: Project = {
     id: projectId,
@@ -19,6 +30,7 @@ export async function createProject(data: {
     ownerId: data.ownerId,
     collaborators: [],
     liveblocksRoom,
+    roomCode,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -39,6 +51,35 @@ export async function getUserProjects(userId: string): Promise<Project[]> {
   );
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => doc.data() as Project);
+}
+
+export async function getProjectByRoomCode(roomCode: string): Promise<Project | null> {
+  const q = query(
+    collection(db, PROJECTS_COLLECTION),
+    where('roomCode', '==', roomCode.toUpperCase())
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    return null;
+  }
+
+  return snapshot.docs[0].data() as Project;
+}
+
+export async function joinProjectByRoomCode(roomCode: string, userId: string): Promise<Project> {
+  const project = await getProjectByRoomCode(roomCode);
+
+  if (!project) {
+    throw new Error('Project not found with this room code');
+  }
+
+  // Add user as collaborator if not already
+  if (!project.collaborators.includes(userId) && project.ownerId !== userId) {
+    await addCollaborator(project.id, userId);
+  }
+
+  return project;
 }
 
 export async function updateProject(projectId: string, updates: Partial<Project>): Promise<void> {

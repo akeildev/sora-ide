@@ -3,7 +3,7 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { getUserProjects, createProject, deleteProject } from '@/lib/projects';
+import { getUserProjects, createProject, deleteProject, joinProjectByRoomCode } from '@/lib/projects';
 import type { Project } from '@repo/types';
 
 export default function ProjectsPage() {
@@ -14,6 +14,9 @@ export default function ProjectsPage() {
   const [projectName, setProjectName] = useState('');
   const [projectDescription, setProjectDescription] = useState('');
   const [isCreating, setIsCreating] = useState(false);
+  const [roomCode, setRoomCode] = useState('');
+  const [isJoining, setIsJoining] = useState(false);
+  const [joinMessage, setJoinMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -65,6 +68,35 @@ export default function ProjectsPage() {
     }
   };
 
+  const handleJoinRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !roomCode.trim()) return;
+
+    setIsJoining(true);
+    setJoinMessage(null);
+
+    try {
+      const project = await joinProjectByRoomCode(roomCode.trim(), user.uid);
+      setJoinMessage({
+        type: 'success',
+        text: `Successfully joined "${project.name}"!`
+      });
+
+      // Navigate to the project after a brief delay
+      setTimeout(() => {
+        router.push(`/editor/${project.id}`);
+      }, 1000);
+    } catch (error: any) {
+      console.error('Failed to join project:', error);
+      setJoinMessage({
+        type: 'error',
+        text: error.message || 'Invalid room code or project not found'
+      });
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">
@@ -90,6 +122,40 @@ export default function ProjectsPage() {
           >
             + New Project
           </button>
+        </div>
+
+        {/* Join Room Code Section */}
+        <div className="bg-gray-800 p-6 rounded-lg mb-8 border border-gray-700">
+          <h2 className="text-xl font-semibold mb-4">Join Project by Room Code</h2>
+          <form onSubmit={handleJoinRoom} className="flex gap-3">
+            <input
+              type="text"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+              placeholder="Enter 5-letter code (e.g., ABC12)"
+              maxLength={5}
+              className="flex-1 px-4 py-3 bg-gray-700 text-white rounded-lg focus:ring-2 focus:ring-blue-500 outline-none uppercase text-center text-xl font-bold tracking-widest"
+              disabled={isJoining}
+            />
+            <button
+              type="submit"
+              disabled={isJoining || roomCode.length !== 5}
+              className="px-8 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-semibold transition-colors"
+            >
+              {isJoining ? 'Joining...' : 'Join'}
+            </button>
+          </form>
+
+          {/* Join Message */}
+          {joinMessage && (
+            <div className={`mt-3 text-sm p-3 rounded ${
+              joinMessage.type === 'success'
+                ? 'bg-green-900 text-green-200 border border-green-700'
+                : 'bg-red-900 text-red-200 border border-red-700'
+            }`}>
+              {joinMessage.text}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
