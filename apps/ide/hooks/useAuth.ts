@@ -25,8 +25,19 @@ export function useAuth() {
   }, []);
 
   const signInWithGoogle = async () => {
+    // Ensure we're in the browser (not SSR)
+    if (typeof window === 'undefined') {
+      throw new Error('OAuth can only be used in the browser');
+    }
+
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error: any) {
+      // Handle popup blocked or closed
+      console.error('OAuth error:', error);
+      throw error;
+    }
   };
 
   const signInWithEmail = async (email: string, password: string) => {
