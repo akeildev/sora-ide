@@ -13,6 +13,7 @@ import { Editor } from './Editor';
 import { PresenceAvatars } from './PresenceAvatars';
 import { Preview } from './Preview';
 import { ShareProjectModal } from './ShareProjectModal';
+import { Console } from './Console';
 import { useCollaborativeFileSystem } from '../hooks/useCollaborativeFileSystem';
 import { useMemo, useState, useEffect } from 'react';
 
@@ -30,6 +31,7 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [showShareModal, setShowShareModal] = useState(false);
+  const [isConsoleOpen, setIsConsoleOpen] = useState(true);
 
   // Extract HTML, CSS, and JavaScript files for preview
   const previewContent = useMemo(() => {
@@ -203,6 +205,9 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
           <span>Ln 1, Col 1</span>
         </div>
       </div>
+
+      {/* Console Panel */}
+      <Console isOpen={isConsoleOpen} onToggle={() => setIsConsoleOpen(!isConsoleOpen)} />
 
       {/* Share Project Modal */}
       {showShareModal && projectId && projectName && (

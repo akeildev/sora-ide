@@ -41,16 +41,55 @@ export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) 
   ${html}
 
   <script>
-    // Error handling
+    // Intercept console methods and send to parent
+    (function() {
+      const originalConsole = {
+        log: console.log,
+        error: console.error,
+        warn: console.warn,
+        info: console.info
+      };
+
+      ['log', 'error', 'warn', 'info'].forEach(method => {
+        console[method] = function(...args) {
+          // Call original method
+          originalConsole[method].apply(console, args);
+
+          // Send to parent window
+          try {
+            window.parent.postMessage({
+              type: 'console',
+              method: method,
+              args: args.map(arg => {
+                try {
+                  return typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg);
+                } catch (e) {
+                  return String(arg);
+                }
+              })
+            }, '*');
+          } catch (e) {
+            // Ignore errors sending to parent
+          }
+        };
+      });
+    })();
+
+    // Global error handling
     window.addEventListener('error', (e) => {
-      console.error('Preview Error:', e.message);
+      console.error(\`Error: \${e.message} at \${e.filename}:\${e.lineno}:\${e.colno}\`);
+    });
+
+    // Unhandled promise rejection
+    window.addEventListener('unhandledrejection', (e) => {
+      console.error('Unhandled Promise Rejection:', e.reason);
     });
 
     // User's JavaScript
     try {
       ${javascript}
     } catch (err) {
-      console.error('JavaScript Error:', err);
+      console.error('JavaScript Error:', err.message || err);
     }
   </script>
 </body>
