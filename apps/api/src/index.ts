@@ -58,7 +58,7 @@ app.post('/execute', async (req, res) => {
     };
 
     // Call Piston API
-    const pistonResponse = await fetch(`${PISTON_URL}/api/v2/execute`, {
+    const pistonResponse = await fetch(`${PISTON_URL}/api/v2/piston/execute`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
