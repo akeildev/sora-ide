@@ -64,19 +64,6 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
   const [messages, setMessages] = useState<Message[]>([]);
   const [isAILoading, setIsAILoading] = useState(false);
 
-  // Extract HTML, CSS, and JavaScript files for preview
-  const previewContent = useMemo(() => {
-    const htmlFile = files.find(f => f.language === 'html');
-    const cssFile = files.find(f => f.language === 'css');
-    const jsFile = files.find(f => f.language === 'javascript');
-
-    return {
-      html: htmlFile?.content || '',
-      css: cssFile?.content || '',
-      javascript: jsFile?.content || '',
-    };
-  }, [files]);
-
   const handleSave = async () => {
     if (!activeFile) return;
 
@@ -212,12 +199,12 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
     setIsAILoading(true);
 
     try {
-      // Call AI API
+      // Call AI API with full conversation history
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message,
+          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
           projectId,
           userId: user.uid,
           files: files.map(f => ({ id: f.id, name: f.name, language: f.language, content: f.content })),
@@ -460,11 +447,7 @@ export function EditorLayout({ projectId, projectName }: { projectId?: string; p
 
         {/* Preview Panel - Always visible */}
         <Panel defaultSize={20} minSize={15} maxSize={40}>
-          <Preview
-            html={previewContent.html}
-            css={previewContent.css}
-            javascript={previewContent.javascript}
-          />
+          <Preview files={files} />
         </Panel>
       </PanelGroup>
 

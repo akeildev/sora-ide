@@ -1,26 +1,115 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
-interface PreviewProps {
-  html?: string;
-  css?: string;
-  javascript?: string;
+interface File {
+  id: string;
+  name: string;
+  content: string;
+  language: string;
 }
 
-export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) {
+interface PreviewProps {
+  files: File[];
+}
+
+export function Preview({ files }: PreviewProps) {
   const [error, setError] = useState<string | null>(null);
   const [iframeKey, setIframeKey] = useState(0);
+  const [currentPage, setCurrentPage] = useState<string>('');
+
+  // Find HTML files
+  const htmlFiles = useMemo(() => {
+    return files.filter(f => f.language === 'html');
+  }, [files]);
+
+  // Get CSS and JavaScript content (combine all CSS/JS files)
+  const cssContent = useMemo(() => {
+    return files
+      .filter(f => f.language === 'css')
+      .map(f => f.content)
+      .join('\n\n');
+  }, [files]);
+
+  const jsContent = useMemo(() => {
+    return files
+      .filter(f => f.language === 'javascript')
+      .map(f => f.content)
+      .join('\n\n');
+  }, [files]);
+
+  // Set initial page (index.html or first HTML file)
+  useEffect(() => {
+    if (!currentPage && htmlFiles.length > 0) {
+      const indexFile = htmlFiles.find(f => f.name.toLowerCase() === 'index.html');
+      setCurrentPage(indexFile?.name || htmlFiles[0].name);
+    }
+  }, [htmlFiles, currentPage]);
+
+  // Listen for navigation messages from iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'navigate') {
+        const targetPage = event.data.page;
+        // Check if this HTML file exists
+        const targetFile = htmlFiles.find(f => f.name === targetPage);
+        if (targetFile) {
+          setCurrentPage(targetPage);
+        } else {
+          console.warn(`Page not found: ${targetPage}`);
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, [htmlFiles]);
 
   const handleReset = () => {
     setIframeKey(prev => prev + 1);
     setError(null);
+    // Reset to index.html or first HTML file
+    const indexFile = htmlFiles.find(f => f.name.toLowerCase() === 'index.html');
+    setCurrentPage(indexFile?.name || htmlFiles[0]?.name || '');
   };
 
   // Build the complete HTML document using srcdoc (safer than contentDocument)
   const fullHTML = useMemo(() => {
     try {
       setError(null);
+
+      // Get the current HTML file's content
+      const currentHtmlFile = htmlFiles.find(f => f.name === currentPage);
+      const htmlContent = currentHtmlFile?.content || '';
+
+      // If no HTML files exist, show empty preview
+      if (!htmlContent && htmlFiles.length === 0) {
+        return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: system-ui, -apple-system, sans-serif;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <p>No HTML files to preview</p>
+    <p style="font-size: 12px; margin-top: 8px;">Create an HTML file to see the preview</p>
+  </div>
+</body>
+</html>`;
+      }
+
       return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -40,11 +129,11 @@ export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) 
     }
 
     /* User's custom CSS */
-    ${css}
+    ${cssContent}
   </style>
 </head>
 <body>
-  ${html}
+  ${htmlContent}
 
   <script>
     // Intercept console methods and send to parent
@@ -91,9 +180,60 @@ export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) 
       console.error('Unhandled Promise Rejection:', e.reason);
     });
 
+    // Intercept navigation to handle multi-page projects
+    document.addEventListener('click', (e) => {
+      const target = e.target.closest('a');
+      if (target && target.href) {
+        const href = target.getAttribute('href');
+
+        // Navigate to home page (index.html) for # links
+        if (href === '#' || href === '') {
+          e.preventDefault();
+          window.parent.postMessage({
+            type: 'navigate',
+            page: 'index.html'
+          }, '*');
+          console.log('Navigating to home page (index.html)');
+          return;
+        }
+
+        // Allow other anchor links (like #section) within the same page
+        if (href && href.startsWith('#')) {
+          return;
+        }
+
+        // Allow javascript: links
+        if (href && href.startsWith('javascript:')) {
+          return;
+        }
+
+        // Check if this is a link to another HTML file in the project
+        if (href && href.endsWith('.html')) {
+          e.preventDefault();
+          // Extract just the filename (handle both relative and absolute paths)
+          const filename = href.split('/').pop();
+
+          // Send navigation request to parent
+          window.parent.postMessage({
+            type: 'navigate',
+            page: filename
+          }, '*');
+
+          console.log('Navigating to:', filename);
+          return;
+        }
+
+        // Block all other external navigation
+        if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+          e.preventDefault();
+          console.log('External navigation blocked:', href, '- Only internal HTML pages are supported in preview.');
+        }
+      }
+    });
+
     // User's JavaScript
     try {
-      ${javascript}
+      ${jsContent}
     } catch (err) {
       console.error('JavaScript Error:', err.message || err);
     }
@@ -105,7 +245,7 @@ export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) 
       setError(err instanceof Error ? err.message : 'Failed to render preview');
       return '';
     }
-  }, [html, css, javascript]);
+  }, [htmlFiles, currentPage, cssContent, jsContent]);
 
   return (
     <div className="h-full flex flex-col bg-white">
@@ -116,7 +256,9 @@ export function Preview({ html = '', css = '', javascript = '' }: PreviewProps) 
           <div className="w-3 h-3 rounded-full bg-yellow-500" />
           <div className="w-3 h-3 rounded-full bg-green-500" />
         </div>
-        <span className="text-sm text-gray-600 font-medium">Preview</span>
+        <span className="text-sm text-gray-600 font-medium">
+          {currentPage || 'Preview'}
+        </span>
         <button
           onClick={handleReset}
           className="p-1.5 hover:bg-gray-200 rounded transition-colors"
