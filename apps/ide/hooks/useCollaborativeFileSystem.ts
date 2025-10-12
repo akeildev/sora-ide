@@ -8,7 +8,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { ProjectFile } from '@repo/types';
-import { sanitizeFilename, generateId } from '@repo/utils';
+import { sanitizeFilename, generateId } from '../lib/utils';
 import { useCollaboration, getOrCreateYjsText, setYjsFileMetadata } from './useCollaboration';
 import type * as Y from 'yjs';
 
