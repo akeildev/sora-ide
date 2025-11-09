@@ -6,7 +6,7 @@
 
 ---
 
-## 🚀 About SoraIDE
+## About SoraIDE
 
 SoraIDE is a modern, collaborative online IDE built for real-time pair programming and code execution. Built on top of the Judge0 IDE foundation, it adds:
 
@@ -18,7 +18,7 @@ SoraIDE is a modern, collaborative online IDE built for real-time pair programmi
 
 ---
 
-## 📦 Architecture
+## Architecture
 
 **Monorepo Structure:**
 - `apps/ide` - Next.js 14 frontend with Monaco editor
@@ -36,7 +36,7 @@ SoraIDE is a modern, collaborative online IDE built for real-time pair programmi
 
 ---
 
-## 🏁 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 20+
@@ -73,7 +73,7 @@ Visit:
 
 ---
 
-## 📖 Documentation
+## Documentation
 
 - [Phase 0 Complete](./PHASE_0_COMPLETE.md) - Foundation setup details
 - [Environment Setup](./.env.example) - Required environment variables
@@ -82,7 +82,7 @@ Visit:
 
 ---
 
-## 🛠️ Development
+## Development
 
 ### Available Commands
 
@@ -123,54 +123,54 @@ pnpm clean:deep  # Remove build outputs + node_modules
 
 ---
 
-## 🗺️ Roadmap
+## Roadmap
 
-### ✅ Phase 0: Foundation (Complete)
-- [x] Monorepo setup with pnpm workspaces
-- [x] Next.js 14 app with Monaco editor
-- [x] Express API + Preview servers
-- [x] Firebase + Liveblocks configuration
-- [x] Render deployment setup
+### Phase 0: Foundation (Complete)
+- Monorepo setup with pnpm workspaces
+- Next.js 14 app with Monaco editor
+- Express API + Preview servers
+- Firebase + Liveblocks configuration
+- Render deployment setup
 
-### 🚧 Phase 1: Core IDE (In Progress)
-- [ ] File tree UI with CRUD operations
-- [ ] Multi-file tabs and editor
-- [ ] In-memory file system
-- [ ] Resizable panel layout
+### Phase 1: Core IDE (In Progress)
+- File tree UI with CRUD operations
+- Multi-file tabs and editor
+- In-memory file system
+- Resizable panel layout
 
-### 📋 Phase 2: Collaboration
-- [ ] Liveblocks integration
-- [ ] Real-time cursor tracking
-- [ ] Presence avatars
-- [ ] Yjs document synchronization
+### Phase 2: Collaboration
+- Liveblocks integration
+- Real-time cursor tracking
+- Presence avatars
+- Yjs document synchronization
 
-### 📋 Phase 3: Auth & Persistence
-- [ ] Firebase Authentication
-- [ ] Firestore project storage
-- [ ] User management
-- [ ] Project sharing
+### Phase 3: Auth & Persistence
+- Firebase Authentication
+- Firestore project storage
+- User management
+- Project sharing
 
-### 📋 Phase 4: Code Execution
-- [ ] Piston integration
-- [ ] Multi-language support
-- [ ] Output panel
-- [ ] Rate limiting
+### Phase 4: Code Execution
+- Piston integration
+- Multi-language support
+- Output panel
+- Rate limiting
 
-### 📋 Phase 5: Previews
-- [ ] Client-side iframe preview
-- [ ] Server-side preview generation
-- [ ] Shareable preview URLs
-- [ ] Session cleanup
+### Phase 5: Previews
+- Client-side iframe preview
+- Server-side preview generation
+- Shareable preview URLs
+- Session cleanup
 
-### 📋 Phase 6: Deployment
-- [ ] Render production deployment
-- [ ] Vercel frontend deployment
-- [ ] Environment configuration
-- [ ] Monitoring setup
+### Phase 6: Deployment
+- Render production deployment
+- Vercel frontend deployment
+- Environment configuration
+- Monitoring setup
 
 ---
 
-## 🔒 Security
+## Security
 
 - **Authentication**: Firebase Auth (Google OAuth, Email/Password)
 - **Authorization**: Firestore security rules (owner/collaborator model)
@@ -183,7 +183,7 @@ See [firestore.rules](./firestore.rules) and [storage.rules](./storage.rules) fo
 
 ---
 
-## 💰 Cost Estimate
+## Cost Estimate
 
 **MVP (First 3 months):**
 - Render (API + Preview + Piston): ~$23.50/month
@@ -197,7 +197,7 @@ See [firestore.rules](./firestore.rules) and [storage.rules](./storage.rules) fo
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 Contributions welcome! Please read [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) first.
 
@@ -209,13 +209,13 @@ Contributions welcome! Please read [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) fi
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](./LICENSE) file for details.
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 Built on top of [Judge0 IDE](https://github.com/judge0/ide) - special thanks to the Judge0 team for the excellent foundation.
 
@@ -229,12 +229,8 @@ Technologies:
 
 ---
 
-## 📞 Support
+## Support
 
-- 📧 Email: support@soraide.dev
-- 💬 Discord: [Join our community](https://discord.gg/soraide)
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/soraide/issues)
-
----
-
-**Built with ❤️ by Akeil**
+- Email: support@soraide.dev
+- Discord: [Join our community](https://discord.gg/soraide)
+- Issues: [GitHub Issues](https://github.com/yourusername/soraide/issues)
